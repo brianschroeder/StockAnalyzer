@@ -32,7 +32,8 @@ def rate_metric(actual, ideal, higher_is_better=True):
 def calculate_investment_score(stock_data):
     pe_ratio_score = 100 - min(100, stock_data["trailingPE"] / 2)
     forward_pe_ratio_score = 100 - min(100, stock_data["forwardPE"] / 2)
-    dividend_yield_score = min(100, stock_data["dividendYield"] * 2000)
+    dividend_yield = stock_data.get("dividendYield", 0)
+    dividend_yield_score = min(100, dividend_yield * 2000)
     beta_score = 100 - min(100, abs(stock_data["beta"]) * 100)
     revenue_growth_score = max(0, min(100, stock_data["revenueGrowth"] * 200))
     earnings_growth_score = max(0, min(100, stock_data["earningsGrowth"] * 200))
@@ -50,12 +51,15 @@ def calculate_investment_score(stock_data):
 
 def display_stock_info(stock_data):
     print("Stock Information for", stock_data["shortName"])
-    print("Current Stock Price:", stock_data["currentPrice"])
+    print("Current Stock Price:","$",stock_data["currentPrice"])
     print("52-Week High:", stock_data["fiftyTwoWeekHigh"])
     print("52-Week Low:", stock_data["fiftyTwoWeekLow"])
     print("P/E Ratio:", round(stock_data["trailingPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["trailingPE"], 20, False))
     print("Forward P/E Ratio:", round(stock_data["forwardPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["forwardPE"], 20, False))
-    print("Dividend Yield:", round(stock_data["dividendYield"], 4), "(Ideal: > 2%)", "| Rating:", rate_metric(stock_data["dividendYield"], 0.02))
+    if "dividendYield" in stock_data and stock_data["dividendYield"]:
+        print("Dividend Yield:", round(stock_data["dividendYield"], 4), "(Ideal: > 2%)", "| Rating:", rate_metric(stock_data["dividendYield"], 0.02))
+    else:
+        print("Dividend Yield: N/A (Ideal: > 2%) | Rating: N/A")
     print("Beta:", round(stock_data["beta"], 4), "(Ideal: < 1)", "| Rating:", rate_metric(stock_data["beta"], 1, False))
     print("Revenue Growth:", round(stock_data["revenueGrowth"], 4), "(Ideal: > 5%)", "| Rating:", rate_metric(stock_data["revenueGrowth"], 0.05))
     print("Earnings Growth:", round(stock_data["earningsGrowth"], 4), "(Ideal: > 5%)", "| Rating:", rate_metric(stock_data["earningsGrowth"], 0.05))
@@ -67,6 +71,6 @@ def display_stock_info(stock_data):
     investment_score = calculate_investment_score(stock_data)
     print("Investment Score Potential:", round(investment_score, 4))
 
-ticker = "AAPL"
+ticker = "AMD"
 stock_data = fetch_stock_data(ticker)
 display_stock_info(stock_data)
