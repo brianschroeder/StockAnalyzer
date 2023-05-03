@@ -50,6 +50,9 @@ def calculate_investment_score(stock_data):
 
 def display_stock_info(stock_data):
     print("Stock Information for", stock_data["shortName"])
+    print("Current Stock Price:", stock_data["currentPrice"])
+    print("52-Week High:", stock_data["fiftyTwoWeekHigh"])
+    print("52-Week Low:", stock_data["fiftyTwoWeekLow"])
     print("P/E Ratio:", round(stock_data["trailingPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["trailingPE"], 20, False))
     print("Forward P/E Ratio:", round(stock_data["forwardPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["forwardPE"], 20, False))
     print("Dividend Yield:", round(stock_data["dividendYield"], 4), "(Ideal: > 2%)", "| Rating:", rate_metric(stock_data["dividendYield"], 0.02))
@@ -67,6 +70,3 @@ def display_stock_info(stock_data):
 ticker = "AAPL"
 stock_data = fetch_stock_data(ticker)
 display_stock_info(stock_data)
-
-
-
