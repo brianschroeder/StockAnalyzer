@@ -28,7 +28,9 @@ To use Stock Analyzer, simply input the stock ticker symbol of the company you w
 
 Stock Analyzer is designed to provide a quick and easy way to assess stocks based on key financial metrics. However, it should be noted that a variety of other factors can impact a stock's performance, such as market conditions, news, and the overall economic climate. Therefore, it's important to use this tool as a starting point for your analysis and not as the sole basis for your investment decisions.
 
-# Apple Output
+# Sample Output
+
+#### Apple Business Data
 
 | Metric             | Value        | Ideal          | Rating    |
 |--------------------|--------------|----------------|-----------|
