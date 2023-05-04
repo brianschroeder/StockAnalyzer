@@ -1,11 +1,40 @@
 import yfinance as yf
+import pandas as pd
+import requests
+from datapackage import Package
+
+metrics = [
+    ("trailingPE", 20, False, "P/E Ratio"),
+    ("forwardPE", 20, False, "Forward P/E Ratio"),
+    ("dividendYield", 0.02, True, "Dividend Yield"),
+    ("beta", 1, False, "Beta"),
+    ("revenueGrowth", 0.05, True, "Revenue Growth"),
+    ("earningsGrowth", 0.05, True, "Earnings Growth"),
+    ("returnOnEquity", 0.15, True, "Return on Equity"),
+    ("debtToEquity", 1, False, "Debt-to-Equity Ratio"),
+    ("grossMargins", 0.4, True, "Gross Margin"),
+    ("operatingMargins", 0.2, True, "Operating Margin"),
+    ("profitMargins", 0.1, True, "Net Profit Margin")
+]
 
 def fetch_stock_data(ticker):
-    stock = yf.Ticker(ticker)
-    stock_info = stock.info
-    return stock_info
+    try:
+        stock = yf.Ticker(ticker)
+        stock_info = stock.info
+        return stock_info
+    except requests.exceptions.HTTPError:
+        print(f"Error fetching data for {ticker}")
+        return {}
 
 def rate_metric(actual, ideal, higher_is_better=True):
+    if actual is None or actual == "N/A":
+        return "N/A"
+
+    try:
+        actual = float(actual)
+    except ValueError:
+        return "N/A"
+
     if higher_is_better:
         if actual >= ideal:
             return "Excellent"
@@ -30,47 +59,57 @@ def rate_metric(actual, ideal, higher_is_better=True):
             return "Poor"
 
 def calculate_investment_score(stock_data):
-    pe_ratio_score = 100 - min(100, stock_data["trailingPE"] / 2)
-    forward_pe_ratio_score = 100 - min(100, stock_data["forwardPE"] / 2)
-    dividend_yield = stock_data.get("dividendYield", 0)
-    dividend_yield_score = min(100, dividend_yield * 2000)
-    beta_score = 100 - min(100, abs(stock_data["beta"]) * 100)
-    revenue_growth_score = max(0, min(100, stock_data["revenueGrowth"] * 200))
-    earnings_growth_score = max(0, min(100, stock_data["earningsGrowth"] * 200))
-    roe_score = max(0, min(100, stock_data["returnOnEquity"] * 100))
-    debt_to_equity_score = max(0, min(100, (1 - stock_data["debtToEquity"]) * 100))
-    gross_margin_score = min(100, stock_data["grossMargins"] * 100)
-    operating_margin_score = min(100, stock_data["operatingMargins"] * 100)
-    net_profit_margin_score = min(100, stock_data["profitMargins"] * 100)
+    total_score = 0
+    num_metrics = 0
 
-    total_score = (pe_ratio_score + forward_pe_ratio_score + dividend_yield_score + 
-                   beta_score + revenue_growth_score + earnings_growth_score + roe_score +
-                   debt_to_equity_score + gross_margin_score + operating_margin_score + net_profit_margin_score) / 11
+    for metric, ideal, higher_is_better, display_name in metrics:
+        value = stock_data.get(metric)
+        if value is not None and value != "N/A":
+            try:
+                value = float(value)
+                total_score += value
+                num_metrics += 1
+            except ValueError:
+                pass
 
-    return total_score
+    if num_metrics == 0:
+        return 0
 
-def display_stock_info(stock_data):
-    print("Stock Information for", stock_data["shortName"])
-    print("Current Stock Price:","$",stock_data["currentPrice"])
-    print("52-Week High:", stock_data["fiftyTwoWeekHigh"])
-    print("52-Week Low:", stock_data["fiftyTwoWeekLow"])
-    print("P/E Ratio:", round(stock_data["trailingPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["trailingPE"], 20, False))
-    print("Forward P/E Ratio:", round(stock_data["forwardPE"], 4), "(Ideal: < 20)", "| Rating:", rate_metric(stock_data["forwardPE"], 20, False))
-    if "dividendYield" in stock_data and stock_data["dividendYield"]:
-        print("Dividend Yield:", round(stock_data["dividendYield"], 4), "(Ideal: > 2%)", "| Rating:", rate_metric(stock_data["dividendYield"], 0.02))
-    else:
-        print("Dividend Yield: N/A (Ideal: > 2%) | Rating: N/A")
-    print("Beta:", round(stock_data["beta"], 4), "(Ideal: < 1)", "| Rating:", rate_metric(stock_data["beta"], 1, False))
-    print("Revenue Growth:", round(stock_data["revenueGrowth"], 4), "(Ideal: > 5%)", "| Rating:", rate_metric(stock_data["revenueGrowth"], 0.05))
-    print("Earnings Growth:", round(stock_data["earningsGrowth"], 4), "(Ideal: > 5%)", "| Rating:", rate_metric(stock_data["earningsGrowth"], 0.05))
-    print("Return on Equity:", round(stock_data["returnOnEquity"], 4), "(Ideal: > 15%)", "| Rating:", rate_metric(stock_data["returnOnEquity"], 0.15))
-    print("Debt-to-Equity Ratio:", round(stock_data["debtToEquity"], 4), "(Ideal: < 1)", "| Rating:", rate_metric(stock_data["debtToEquity"], 1, False))
-    print("Gross Margin:", round(stock_data["grossMargins"], 4), "(Ideal: > 40%)", "| Rating:", rate_metric(stock_data["grossMargins"], 0.4))
-    print("Operating Margin:", round(stock_data["operatingMargins"], 4), "(Ideal: > 20%)", "| Rating:", rate_metric(stock_data["operatingMargins"], 0.2))
-    print("Net Profit Margin:", round(stock_data["profitMargins"], 4), "(Ideal: > 10%)", "| Rating:", rate_metric(stock_data["profitMargins"], 0.1))
+    return total_score / num_metrics
+
+def create_stock_info_dataframe(stock_data):
+    data = {
+        "Stock": [stock_data.get("shortName", "N/A")],
+        "Current Stock Price": [stock_data.get("currentPrice", "N/A")],
+        "52-Week High": [stock_data.get("fiftyTwoWeekHigh", "N/A")],
+        "52-Week Low": [stock_data.get("fiftyTwoWeekLow", "N/A")],
+    }
+    
+    for metric, ideal, higher_is_better, display_name in metrics:
+        value = stock_data.get(metric, None)
+        if value is not None:
+            data[f"{display_name}"] = [value]
+            data[f"{display_name} Rating"] = [rate_metric(value, ideal, higher_is_better)]
+        else:
+            data[f"{display_name}"] = [None]
+            data[f"{display_name} Rating"] = ["N/A"]
+    
     investment_score = calculate_investment_score(stock_data)
-    print("Investment Score Potential:", round(investment_score, 4))
+    data["Investment Score Potential"] = [investment_score]
+    
+    return pd.DataFrame(data)
 
-ticker = "AMD"
-stock_data = fetch_stock_data(ticker)
-display_stock_info(stock_data)
+df_list = []
+package = Package('https://datahub.io/core/s-and-p-500-companies/datapackage.json')
+
+# print processed tabular data (if exists any)
+for resource in package.resources:
+    if resource.descriptor['datahub']['type'] == 'derived/csv':
+        companies = resource.read()
+        for company in companies:
+            stock_data = fetch_stock_data(company[0])
+            df = create_stock_info_dataframe(stock_data)
+            df_list.append(df)
+
+result = pd.concat(df_list)
+result.to_excel("stock_information.xlsx", index=False)
